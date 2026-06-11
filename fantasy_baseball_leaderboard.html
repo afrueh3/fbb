@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fantasy Baseball Career Leaderboard</title>
+<style>
+  :root {
+    --bg: #f5f5f0;
+    --panel: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --line: #e3e3dd;
+    --accent: #b22222;
+    --accent-soft: #fdecec;
+    --highlight: #fff8d6;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06);
+    --badge-24: #c8d8e4;
+    --badge-25: #d6e7c8;
+    --badge-26: #fbd9b0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.45;
+  }
+  header {
+    background: var(--panel);
+    border-bottom: 3px solid var(--accent);
+    padding: 22px 32px 18px;
+    box-shadow: var(--shadow);
+  }
+  header h1 {
+    margin: 0 0 4px;
+    font-size: 26px;
+    letter-spacing: -0.02em;
+  }
+  header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  main {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px 32px 60px;
+  }
+  .controls {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .controls input[type="search"] {
+    flex: 1;
+    max-width: 320px;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    font-size: 14px;
+    background: var(--panel);
+  }
+  .controls input[type="search"]:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .legend {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .legend .badge {
+    font-size: 11px;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+    padding: 2px 8px;
+  }
+  .legend .badge:hover { transform: translateY(-1px); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+  .legend .badge.inactive {
+    opacity: 0.32;
+    text-decoration: line-through;
+    filter: grayscale(0.6);
+  }
+  .legend .label-hint {
+    margin-left: 4px;
+    font-size: 11px;
+    font-style: italic;
+  }
+  .legend .active-toggle {
+    margin-left: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    color: var(--ink);
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    transition: border-color 0.12s, background 0.12s;
+  }
+  .legend .active-toggle:hover { border-color: var(--accent); }
+  .legend .active-toggle input { cursor: pointer; margin: 0; accent-color: var(--accent); }
+  .legend .active-toggle.checked {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .mode-toggle {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-left: 16px;
+  }
+  .mode-toggle button {
+    background: var(--panel);
+    border: 0;
+    padding: 4px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--ink);
+    font-family: inherit;
+    transition: background 0.12s;
+  }
+  .mode-toggle button + button { border-left: 1px solid var(--line); }
+  .mode-toggle button.active {
+    background: var(--accent);
+    color: white;
+    font-weight: 600;
+  }
+  .mode-toggle button:hover:not(.active) { background: var(--accent-soft); }
+  .mode-label {
+    margin-left: 12px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .pos-filter {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 18px;
+    border-bottom: 1px solid var(--line);
+    background: #fafaf6;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .pos-filter .label { margin-right: 4px; font-weight: 500; }
+  .chip {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--ink);
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.12s;
+  }
+  .chip:hover { border-color: var(--accent); }
+  .chip.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .chip.clear {
+    background: transparent;
+    color: var(--muted);
+    border-style: dashed;
+  }
+  .chip.clear:hover { color: var(--accent); border-color: var(--accent); }
+  .pos-tag {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    background: #ece9dd;
+    color: #555;
+    margin-right: 3px;
+    letter-spacing: 0.02em;
+  }
+  .pos-cell { white-space: nowrap; }
+  .pos-empty { color: #c0bcb1; font-size: 11px; }
+  section {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    margin-bottom: 24px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  section h2 {
+    margin: 0;
+    padding: 14px 18px;
+    font-size: 17px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(to bottom, #fafaf6, #f3f2ec);
+  }
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th, td {
+    padding: 8px 10px;
+    text-align: right;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--line);
+  }
+  th:first-child, td:first-child {
+    text-align: left;
+    padding-left: 18px;
+    position: sticky;
+    left: 0;
+    background: inherit;
+  }
+  th {
+    background: #f8f7f1;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 2px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  th:hover { background: var(--accent-soft); }
+  th.sorted-asc::after { content: " \25B2"; color: var(--accent); font-size: 10px; }
+  th.sorted-desc::after { content: " \25BC"; color: var(--accent); font-size: 10px; }
+  tbody tr:hover { background: var(--highlight); }
+  tbody tr:nth-child(even) { background: #fbfaf5; }
+  tbody tr:nth-child(even):hover { background: var(--highlight); }
+  td.player {
+    font-weight: 500;
+    text-align: left;
+    padding-left: 18px;
+    background: inherit;
+  }
+  td.player.current {
+    font-weight: 800;
+  }
+  .seasons {
+    display: inline-flex;
+    gap: 3px;
+    margin-left: 8px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #333;
+    letter-spacing: 0.02em;
+  }
+  .badge.s24 { background: var(--badge-24); }
+  .badge.s25 { background: var(--badge-25); }
+  .badge.s26 { background: var(--badge-26); }
+  th.rank, td.rank {
+    text-align: right;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    width: 32px;
+    padding-right: 12px;
+    padding-left: 12px;
+    background: inherit;
+  }
+  th.rank { cursor: default; }
+  th.rank:hover { background: #f8f7f1; }
+  td.rank { font-weight: 500; color: var(--ink); }
+  tfoot td {
+    font-weight: 600;
+    background: #f8f7f1;
+    border-top: 2px solid var(--line);
+  }
+  details {
+    margin-top: 28px;
+    padding: 14px 18px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  details code {
+    background: #f3f2ec;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+  details ul { margin: 8px 0; padding-left: 22px; }
+  details li { margin: 4px 0; }
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 24px;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Fantasy Baseball Career Leaderboard</h1>
+  <p>Combined player totals across the 2024, 2025, and 2026 seasons &mdash; "It's Miller Time" rosters</p>
+</header>
+
+<main>
+  <div class="controls">
+    <input type="search" id="search" placeholder="Search players...">
+    <div class="legend" id="season-legend">
+      Seasons:
+      <span class="badge s24" data-season="2024">'24</span>
+      <span class="badge s25" data-season="2025">'25</span>
+      <span class="badge s26" data-season="2026">'26</span>
+      <span class="label-hint">(click to toggle)</span>
+      <label class="active-toggle" id="show-active-label">
+        <input type="checkbox" id="show-active">
+        Show Active
+      </label>
+      <span class="mode-label">View:</span>
+      <span class="mode-toggle" id="mode-toggle">
+        <button type="button" data-mode="career" class="active">Career</button>
+        <button type="button" data-mode="season">Single Season</button>
+      </span>
+    </div>
+  </div>
+
+  <section>
+    <h2>Batters</h2>
+    <div class="pos-filter" id="batter-pos-filter">
+      <span class="label">Position:</span>
+      <span class="chip" data-pos="C">C</span>
+      <span class="chip" data-pos="1B">1B</span>
+      <span class="chip" data-pos="2B">2B</span>
+      <span class="chip" data-pos="3B">3B</span>
+      <span class="chip" data-pos="SS">SS</span>
+      <span class="chip" data-pos="OF">OF</span>
+      <span class="chip clear" data-clear="1">Clear</span>
+    </div>
+    <div class="table-wrap"><table id="batters-table"></table></div>
+  </section>
+
+  <section>
+    <h2>Pitchers</h2>
+    <div class="pos-filter" id="pitcher-pos-filter">
+      <span class="label">Position:</span>
+      <span class="chip" data-pos="SP">SP</span>
+      <span class="chip" data-pos="RP">RP</span>
+      <span class="chip clear" data-clear="1">Clear</span>
+    </div>
+    <div class="table-wrap"><table id="pitchers-table"></table></div>
+  </section>
+
+  <details>
+    <summary>How the combined stats are calculated</summary>
+    <ul>
+      <li><strong>Counting stats</strong> (GP, R, HR, RBI, SB, QS, SV+H) are summed directly across seasons.</li>
+      <li><strong>H/AB</strong> are extracted from the per-season "H/AB" cell and summed.</li>
+      <li><strong>SLG</strong>: per-season total bases = <code>SLG &times; AB</code>. Combined SLG = <code>&Sigma;TB / &Sigma;AB</code>.</li>
+      <li><strong>K</strong>: per-season strikeouts = <code>(K/9) &times; IP / 9</code>. Combined K is the rounded sum.</li>
+      <li><strong>ERA</strong>: per-season earned runs = <code>ERA &times; IP / 9</code>. Combined ERA = <code>(&Sigma;ER &times; 9) / &Sigma;IP</code>.</li>
+      <li><strong>WHIP</strong>: per-season walks+hits = <code>WHIP &times; IP</code>. Combined WHIP = <code>&Sigma;(W+H) / &Sigma;IP</code>.</li>
+      <li><strong>IP</strong> is parsed in baseball notation: <code>.1 = 1/3</code> inning, <code>.2 = 2/3</code> inning. Sums are formatted back the same way.</li>
+      <li>OBP is omitted because the source page doesn't expose plate appearances or walks.</li>
+      <li><strong>Position</strong> info is sourced from Yahoo's 2026 team log for currently-rostered players, supplemented with manually-provided historical eligibility for older-roster players. Each player's positions are the union across any season they appeared (e.g., Ceddanne Rafaela shows 2B, OF, SS, so any of the three position filters includes him).</li>
+      <li><strong>Bold</strong> names are players currently on the active 2026 roster (refreshed daily by the scheduled task), matching the convention used by Baseball Reference for active players.</li>
+      <li>Per-season values are rounded by Yahoo before display, so combined ER/WH/K can differ by a small fraction from a perfect calculation done on raw counts. For a player who played a meaningful number of innings, the deviation is well under 1%.</li>
+    </ul>
+  </details>
+</main>
+
+<script>
+// The season treated as "current" for the active-roster bolding and Show Active filter.
+const CURRENT_SEASON = "2026";
+
+// Players currently on Aaron's 2026 roster (refreshed by the scheduled task).
+// Names appearing here are rendered in bold in the leaderboard tables.
+const CURRENT_ROSTER = new Set([
+  "Abner Uribe",
+  "Alec Burleson",
+  "Brooks Raley",
+  "Bryson Stott",
+  "Cam Schlittler",
+  "Ceddanne Rafaela",
+  "Colt Emerson",
+  "Connelly Early",
+  "Framber Valdez",
+  "Garrett Crochet",
+  "Hagen Smith",
+  "JJ Bleday",
+  "James Tibbs III",
+  "James Wood",
+  "Jeremy Peña",
+  "JoJo Romero",
+  "Joshua Baez",
+  "José Caballero",
+  "Justin Steele",
+  "Landen Roupp",
+  "Louis Varland",
+  "Mason Miller",
+  "Mickey Moniak",
+  "Nick Lodolo",
+  "Noah Cameron",
+  "Nolan Arenado",
+  "Riley Greene",
+  "Tarik Skubal",
+  "Travis Bazzana",
+  "William Contreras"
+]);
+
+// Player positions (merged from Yahoo's 2026 team log + user-provided historical data)
+const POSITION_DATA = {
+  batters: {
+    "Alec Burleson": ["1B", "OF"],
+    "Alex Bregman": ["3B"],
+    "Austin Wells": ["C"],
+    "Blaze Alexander": ["2B", "3B", "SS"],
+    "Brandon Marsh": ["OF"],
+    "Brenton Doyle": ["OF"],
+    "Bryson Stott": ["2B", "SS"],
+    "Caleb Durbin": ["2B", "3B"],
+    "Ceddanne Rafaela": ["2B", "OF", "SS"],
+    "Chase Meidroth": ["2B", "3B", "SS"],
+    "Christopher Morel": ["2B", "3B", "OF", "SS"],
+    "Coby Mayo": ["1B", "3B"],
+    "Cody Bellinger": ["1B", "OF"],
+    "Colt Emerson": ["3B", "SS"],
+    "Colt Keith": ["2B", "3B"],
+    "Ernie Clement": ["1B", "2B", "3B", "SS"],
+    "Eugenio Suárez": ["3B"],
+    "Garrett Mitchell": ["OF"],
+    "Gavin Sheets": ["1B", "OF"],
+    "Ha-Seong Kim": ["2B", "3B", "SS"],
+    "Heliot Ramos": ["OF"],
+    "Isiah Kiner-Falefa": ["2B", "3B", "OF", "SS"],
+    "Ivan Herrera": ["C"],
+    "JJ Bleday": ["OF"],
+    "Jackson Merrill": ["OF", "SS"],
+    "Jacob Wilson": ["SS"],
+    "Jake Cronenworth": ["1B", "2B"],
+    "James Wood": ["OF"],
+    "Jeimer Candelario": ["1B", "3B"],
+    "Jeremy Peña": ["SS"],
+    "Jo Adell": ["OF"],
+    "Jonathan Aranda": ["1B"],
+    "Jonathan India": ["2B"],
+    "Jordan Walker": ["3B", "OF"],
+    "Jose Altuve": ["2B"],
+    "Jose Fernandez": ["1B", "SS"],
+    "Josh Bell": ["1B"],
+    "Josh Jung": ["3B"],
+    "Josh Smith": ["1B", "2B", "3B", "SS"],
+    "José Caballero": ["2B", "3B", "OF", "SS"],
+    "Jung Hoo Lee": ["OF"],
+    "Jurickson Profar": ["OF"],
+    "Kerry Carpenter": ["OF"],
+    "Kyle Stowers": ["OF"],
+    "Lane Thomas": ["OF"],
+    "Lawrence Butler": ["OF"],
+    "Lourdes Gurriel Jr.": ["OF"],
+    "Luis Urías": ["2B", "3B"],
+    "Marcus Semien": ["2B", "SS"],
+    "Masataka Yoshida": ["OF"],
+    "Masyn Winn": ["SS"],
+    "Max Muncy": ["2B", "3B"],
+    "Mickey Moniak": ["OF"],
+    "Miguel Vargas": ["1B", "2B"],
+    "Mike Yastrzemski": ["OF"],
+    "Nick Castellanos": ["OF"],
+    "Nick Senzel": ["3B", "OF"],
+    "Nolan Arenado": ["3B"],
+    "Otto Kemp": ["1B", "3B", "OF"],
+    "Pavin Smith": ["1B", "OF"],
+    "Pete Crow-Armstrong": ["OF"],
+    "Riley Greene": ["OF"],
+    "Royce Lewis": ["3B", "SS"],
+    "Ryan Jeffers": ["C"],
+    "Ryan O'Hearn": ["1B", "OF"],
+    "Shea Langeliers": ["C"],
+    "Spencer Torkelson": ["1B"],
+    "Starling Marte": ["OF"],
+    "TJ Rumfield": ["1B"],
+    "Taylor Ward": ["OF"],
+    "Tommy Edman": ["2B", "OF", "SS"],
+    "Travis Bazzana": ["2B"],
+    "Tyler O'Neill": ["OF"],
+    "Victor Robles": ["OF"],
+    "William Contreras": ["C"]
+  },
+  pitchers: {
+    "A.J. Puk": ["RP", "SP"],
+    "Abner Uribe": ["RP"],
+    "Alex Lange": ["RP"],
+    "Andrew Abbott": ["SP"],
+    "Andrew Kittredge": ["RP"],
+    "Anthony Banda": ["RP"],
+    "Austin Adams": ["RP"],
+    "Bennett Sousa": ["RP"],
+    "Blake Treinen": ["RP"],
+    "Bobby Miller": ["SP"],
+    "Cade Cavalli": ["SP"],
+    "Brayan Bello": ["SP"],
+    "Brooks Raley": ["RP"],
+    "Cam Schlittler": ["SP"],
+    "Camilo Doval": ["RP"],
+    "Chris Bassitt": ["SP"],
+    "Chris Paddack": ["SP"],
+    "Clarke Schmidt": ["SP"],
+    "Colin Rea": ["RP", "SP"],
+    "Connelly Early": ["SP"],
+    "Daniel Hudson": ["RP"],
+    "Dennis Santana": ["RP"],
+    "Dietrich Enns": ["RP"],
+    "Drew Thorpe": ["SP"],
+    "Dylan Lee": ["RP"],
+    "Edward Cabrera": ["SP"],
+    "Eric Lauer": ["SP"],
+    "Erick Fedde": ["SP"],
+    "Fernando Cruz": ["RP"],
+    "Framber Valdez": ["SP"],
+    "Garrett Crochet": ["RP", "SP"],
+    "Gavin Stone": ["SP"],
+    "Gavin Williams": ["SP"],
+    "George Kirby": ["SP"],
+    "Grant Holmes": ["SP"],
+    "Gregory Soto": ["RP"],
+    "Griffin Jax": ["RP"],
+    "Hunter Harvey": ["RP"],
+    "Jack Flaherty": ["SP"],
+    "Jack Kochanowicz": ["SP"],
+    "Jack Leiter": ["SP"],
+    "Jake Cousins": ["RP"],
+    "Jalen Beeks": ["RP"],
+    "Jameson Taillon": ["SP"],
+    "Jason Alexander": ["SP"],
+    "Jesús Luzardo": ["SP"],
+    "JoJo Romero": ["RP"],
+    "Joel Payamps": ["RP"],
+    "Joey Cantillo": ["SP", "RP"],
+    "John Brebbia": ["RP"],
+    "Jordan Leasure": ["RP"],
+    "Josh Hader": ["RP"],
+    "José Leclerc": ["RP"],
+    "Kevin Ginkel": ["RP"],
+    "Kirby Yates": ["RP"],
+    "Kodai Senga": ["SP"],
+    "Kyle Backhus": ["RP"],
+    "Kyle Leahy": ["RP"],
+    "Landen Roupp": ["SP"],
+    "Louis Varland": ["RP"],
+    "Mason Miller": ["RP", "SP"],
+    "Matt Strahm": ["RP", "SP"],
+    "Matthew Liberatore": ["SP"],
+    "Max Meyer": ["SP"],
+    "Merrill Kelly": ["SP"],
+    "Mick Abel": ["SP"],
+    "Mitch Keller": ["SP"],
+    "Mitchell Parker": ["SP"],
+    "Nathan Eovaldi": ["SP"],
+    "Noah Cameron": ["SP"],
+    "Nestor Cortes": ["SP"],
+    "Nick Lodolo": ["SP"],
+    "Nick Pivetta": ["RP", "SP"],
+    "Quinn Priester": ["SP"],
+    "Raisel Iglesias": ["RP"],
+    "Reese Olson": ["SP"],
+    "Richard Fitts": ["SP"],
+    "Robert Garcia": ["RP"],
+    "Ryan Zeferjahn": ["RP"],
+    "Ryne Stanek": ["RP"],
+    "Sandy Alcantara": ["SP"],
+    "Shelby Miller": ["RP"],
+    "Shohei Ohtani (Pitcher)": ["SP"],
+    "Shota Imanaga": ["SP"],
+    "Spencer Arrighetti": ["SP"],
+    "Spencer Schwellenbach": ["SP"],
+    "Spencer Turnbull": ["SP"],
+    "Taj Bradley": ["SP"],
+    "Tarik Skubal": ["SP"],
+    "Tomoyuki Sugano": ["SP"],
+    "Tyler Anderson": ["SP"],
+    "Tyler Ferguson": ["RP"],
+    "Tyler Mahle": ["SP"],
+    "Tyler Rogers": ["RP"],
+    "Tyler Wells": ["RP", "SP"],
+    "Tylor Megill": ["RP", "SP"],
+    "Walker Buehler": ["SP"],
+    "Yennier Cano": ["RP"],
+    "Yimi García": ["RP"],
+    "Yu Darvish": ["SP"]
+  }
+};
+
+const RAW_DATA = {
+  "2024": {
+    "batters": [
+      ["Jake Cronenworth","140","129/525","69","16","77","5",".326",".398"],
+      ["Ha-Seong Kim","119","93/401","59","11","47","22",".322",".369"],
+      ["Marcus Semien","149","142/604","92","21","69","7",".305",".387"],
+      ["Alex Bregman","140","144/564","78","25","72","3",".312",".445"],
+      ["Lane Thomas","97","82/368","48","10","42","28",".303",".364"],
+      ["Jordan Walker","13","4/37","2","0","1","0",".171",".216"],
+      ["Riley Greene","125","127/470","78","24","72","4",".359",".502"],
+      ["Tyler O'Neill","97","82/360","69","28","55","4",".328",".508"],
+      ["Josh Bell","6","5/22","3","0","0","0",".370",".273"],
+      ["William Contreras","148","164/573","96","23","92","7",".368",".478"],
+      ["Starling Marte","59","64/228","34","7","31","12",".324",".425"],
+      ["Jackson Merrill","38","33/128","10","2","16","6",".299",".328"],
+      ["Masataka Yoshida","8","6/31","4","1","6","0",".265",".290"],
+      ["Gavin Sheets","6","5/22","1","1","2","0",".320",".409"],
+      ["Blaze Alexander","1","1/4","0","0","0","0",".250",".250"],
+      ["Pete Crow-Armstrong","12","10/40","3","1","9","2",".279",".425"],
+      ["Brenton Doyle","5","3/19","3","0","0","0",".238",".158"],
+      ["Nick Senzel","5","4/22","1","0","2","0",".280",".227"],
+      ["Brandon Marsh","17","12/44","7","0","6","2",".411",".341"],
+      ["Spencer Torkelson","11","5/42","5","2","2","0",".159",".286"],
+      ["Lourdes Gurriel Jr.","2","1/8","0","0","1","0",".125",".125"],
+      ["Jonathan India","73","66/261","48","7","29","6",".357",".402"],
+      ["Jeimer Candelario","42","37/173","19","8","28","3",".246",".393"],
+      ["Shea Langeliers","1","0/3","0","0","0","0",".000",".000"],
+      ["Ceddanne Rafaela","57","59/214","28","5","24","6",".308",".397"],
+      ["Ivan Herrera","3","5/11","4","1","5","0",".538","1.000"],
+      ["James Wood","70","66/259","35","6","34","14",".346",".390"],
+      ["Victor Robles","24","28/98","13","1","8","9",".340",".388"],
+      ["Ryan O'Hearn","1","0/3","0","0","0","0",".250",".000"],
+      ["Eugenio Suárez","41","51/161","34","13","36","0",".347",".602"],
+      ["Jo Adell","2","1/7","0","0","0","0",".143",".143"],
+      ["Tommy Edman","27","26/103","16","6","17","4",".304",".476"],
+      ["Taylor Ward","1","1/4","0","0","0","0",".250",".500"],
+      ["Coby Mayo","2","1/6","1","0","0","0",".286",".167"],
+      ["Pavin Smith","5","4/20","3","1","2","0",".273",".450"]
+    ],
+    "pitchers": [
+      ["Framber Valdez","25","158.2","184","3.12","1.10","8.45","16","0"],
+      ["Tarik Skubal","29","178.1","210","2.52","0.94","10.65","20","0"],
+      ["Brayan Bello","8","45.1","59","4.17","1.37","8.74","3","0"],
+      ["Josh Hader","69","68.2","83","3.67","0.95","13.24","0","33"],
+      ["Nathan Eovaldi","21","118.2","191","4.47","1.21","9.18","9","0"],
+      ["Griffin Jax","70","68.2","69","2.10","0.87","11.93","0","34"],
+      ["Bobby Miller","6","22.2","50","8.34","1.94","9.93","1","0"],
+      ["Alex Lange","12","10.2","6","0.84","1.22","11.81","0","2"],
+      ["Gregory Soto","7","5.1","8","1.69","1.50","8.44","0","4"],
+      ["Jack Flaherty","4","23.1","37","3.86","1.03","11.96","3","0"],
+      ["Shota Imanaga","26","155.2","235","3.01","1.05","9.31","17","0"],
+      ["Spencer Turnbull","4","21.1","22","2.11","0.98","9.70","1","0"],
+      ["Gavin Stone","1","3.1","6","5.40","2.70","2.70","0","0"],
+      ["Daniel Hudson","43","41.1","49","2.61","1.04","7.62","0","21"],
+      ["Garrett Crochet","21","96.0","123","2.91","1.06","12.94","7","0"],
+      ["Mitchell Parker","2","9.1","14","3.86","1.71","6.75","0","0"],
+      ["Ryne Stanek","8","7.0","13","6.43","1.14","9.00","0","2"],
+      ["Mitch Keller","17","98.2","177","4.20","1.32","7.94","9","0"],
+      ["Reese Olson","7","37.2","64","4.54","1.33","7.17","3","0"],
+      ["Fernando Cruz","19","15.1","28","5.87","1.50","11.74","0","8"],
+      ["Erick Fedde","3","19.0","32","3.79","1.16","5.21","2","0"],
+      ["Drew Thorpe","1","6.0","5","3.00","0.50","6.00","1","0"],
+      ["Joel Payamps","1","0.1","4","54.00","12.00","0.00","0","0"],
+      ["Spencer Schwellenbach","1","5.0","12","7.20","1.40","12.60","0","0"],
+      ["John Brebbia","6","5.2","16","7.94","2.12","12.71","0","2"],
+      ["Kevin Ginkel","9","8.2","19","6.23","1.50","8.31","0","5"],
+      ["Kodai Senga","1","5.1","5","3.38","0.56","15.19","0","0"],
+      ["Austin Adams","1","0.1","0","0.00","0.00","27.00","0","0"],
+      ["Tyler Ferguson","11","10.1","16","7.84","1.55","13.94","0","2"],
+      ["Raisel Iglesias","18","22.0","19","2.05","0.73","9.82","0","9"],
+      ["Walker Buehler","1","4.0","10","6.75","2.50","2.25","0","0"],
+      ["Spencer Arrighetti","2","14.1","14","1.26","0.98","11.30","2","0"],
+      ["Anthony Banda","1","1.0","7","36.00","4.00","9.00","0","0"],
+      ["Jake Cousins","3","2.0","0","0.00","1.50","13.50","0","1"],
+      ["Gavin Williams","1","5.1","13","5.06","1.69","8.44","0","0"],
+      ["Edward Cabrera","1","6.0","1","0.00","0.33","13.50","1","0"],
+      ["Dennis Santana","4","4.1","3","2.08","0.69","6.23","0","3"],
+      ["Nestor Cortes","1","6.0","5","0.00","1.17","9.00","1","0"],
+      ["José Leclerc","1","1.2","3","5.40","1.80","10.80","0","0"],
+      ["Yu Darvish","1","6.1","9","2.84","0.47","12.79","1","0"]
+    ]
+  },
+  "2025": {
+    "batters": [
+      ["Max Muncy","17","9/58","2","0","3","0",".246",".241"],
+      ["William Contreras","139","137/529","84","17","70","6",".355",".405"],
+      ["Cody Bellinger","138","150/545","84","27","93","12",".332",".488"],
+      ["Jose Altuve","148","150/568","78","26","75","10",".325",".445"],
+      ["Masyn Winn","110","106/417","59","9","41","6",".311",".372"],
+      ["Lawrence Butler","137","124/530","75","19","58","21",".302",".402"],
+      ["Riley Greene","146","149/567","79","33","106","2",".314",".496"],
+      ["James Wood","148","143/565","82","27","89","15",".349",".462"],
+      ["Victor Robles","10","12/44","3","0","3","3",".283",".341"],
+      ["Jeremy Peña","120","138/470","67","17","58","18",".356",".470"],
+      ["JJ Bleday","6","6/23","3","0","1","1",".346",".304"],
+      ["Colt Keith","4","2/12","2","0","0","0",".375",".250"],
+      ["Jung Hoo Lee","58","56/223","27","6","28","1",".307",".413"],
+      ["Isiah Kiner-Falefa","8","6/27","2","0","1","1",".222",".333"],
+      ["Christopher Morel","7","3/25","0","0","1","0",".241",".160"],
+      ["Nick Castellanos","82","82/312","40","9","40","3",".304",".401"],
+      ["Jonathan Aranda","11","12/43","6","2","6","0",".354",".488"],
+      ["Josh Smith","2","0/5","0","0","0","0",".167",".000"],
+      ["Coby Mayo","1","0/3","0","0","0","0",".250",".000"],
+      ["Luis Urías","2","1/7","0","0","0","0",".250",".143"],
+      ["Ryan Jeffers","2","0/7","0","0","0","0",".125",".000"],
+      ["Josh Jung","29","26/107","14","4","14","1",".308",".393"],
+      ["Jake Cronenworth","4","2/14","1","0","0","0",".294",".143"],
+      ["Miguel Vargas","10","8/35","5","1","3","0",".308",".400"],
+      ["Otto Kemp","2","0/7","1","0","0","0",".125",".000"],
+      ["Caleb Durbin","16","21/60","10","1","8","4",".403",".433"],
+      ["Kyle Stowers","36","37/125","20","12","29","2",".379",".632"],
+      ["Royce Lewis","63","55/228","21","9","35","12",".284",".408"],
+      ["Jurickson Profar","57","61/230","44","13","38","7",".360",".496"],
+      ["Alec Burleson","7","7/29","0","0","4","0",".290",".276"],
+      ["Gavin Sheets","19","16/64","6","0","8","0",".338",".359"],
+      ["Austin Wells","10","6/28","5","0","2","0",".333",".286"],
+      ["Mike Yastrzemski","3","0/9","0","0","1","0",".091",".000"]
+    ],
+    "pitchers": [
+      ["Blake Treinen","11","9.2","17","3.72","2.07","13.97","0","6"],
+      ["Tarik Skubal","28","176.1","202","2.35","0.86","11.23","18","0"],
+      ["Garrett Crochet","28","174.2","250","2.83","1.12","11.49","18","0"],
+      ["Matt Strahm","65","61.1","77","2.79","1.09","10.13","0","27"],
+      ["Yimi García","16","15.0","12","4.20","1.07","12.60","0","6"],
+      ["Jesús Luzardo","2","11.0","17","2.45","1.27","13.91","1","0"],
+      ["Yennier Cano","17","14.1","26","4.40","1.40","10.05","0","8"],
+      ["Max Meyer","8","44.1","73","4.47","1.35","10.35","3","0"],
+      ["Richard Fitts","2","12.0","19","4.50","1.33","6.00","2","0"],
+      ["A.J. Puk","8","8.0","17","3.38","1.25","13.50","0","6"],
+      ["Landen Roupp","3","16.0","25","2.81","1.31","10.13","1","0"],
+      ["Grant Holmes","13","72.2","100","3.96","1.29","9.54","6","0"],
+      ["Tylor Megill","10","47.2","70","4.91","1.49","11.90","0","0"],
+      ["Jalen Beeks","5","5.0","9","5.40","1.80","5.40","0","3"],
+      ["Tyler Ferguson","13","11.1","14","7.94","1.41","7.94","0","5"],
+      ["Matthew Liberatore","9","45.1","89","5.16","1.39","6.55","3","0"],
+      ["Kyle Leahy","13","16.1","23","3.31","1.71","5.51","0","6"],
+      ["Tyler Rogers","58","55.2","66","2.10","0.95","5.34","0","22"],
+      ["Dylan Lee","5","4.1","16","6.23","2.08","2.08","0","1"],
+      ["Jordan Leasure","4","3.2","4","4.91","0.82","4.91","0","1"],
+      ["George Kirby","21","114.0","177","4.50","1.25","9.47","11","0"],
+      ["Sandy Alcantara","3","18.1","30","5.40","1.04","8.84","1","0"],
+      ["Clarke Schmidt","7","41.1","45","2.18","0.87","7.62","4","0"],
+      ["Shelby Miller","22","21.1","28","2.95","0.80","11.39","0","7"],
+      ["Ryan Zeferjahn","12","10.1","24","8.71","1.65","6.97","0","6"],
+      ["Kirby Yates","26","21.1","41","6.33","1.36","8.44","0","8"],
+      ["Chris Paddack","1","4.0","21","18.00","3.25","2.25","0","0"],
+      ["Tomoyuki Sugano","1","4.2","10","5.79","1.71","7.71","0","0"],
+      ["Shohei Ohtani (Pitcher)","8","13.0","16","2.08","1.31","10.38","0","0"],
+      ["Bennett Sousa","6","7.1","14","6.14","1.77","7.36","0","2"],
+      ["Kyle Backhus","2","0.2","3","13.50","4.50","0.00","0","0"],
+      ["Dennis Santana","24","23.2","30","3.42","0.97","7.99","0","11"],
+      ["Hunter Harvey","1","1.0","0","0.00","0.00","0.00","0","0"],
+      ["Edward Cabrera","5","30.2","34","3.23","1.14","10.86","3","0"],
+      ["Eric Lauer","3","16.0","21","2.25","1.31","6.75","1","0"],
+      ["Tyler Anderson","1","6.0","15","6.00","1.17","7.50","0","0"],
+      ["Nick Pivetta","7","43.2","48","2.68","0.89","8.66","5","0"],
+      ["Andrew Kittredge","20","18.2","25","3.86","0.86","12.54","0","12"],
+      ["Jason Alexander","2","11.0","24","4.09","1.55","9.00","0","0"],
+      ["Dietrich Enns","1","2.0","6","9.00","2.00","4.50","0","0"],
+      ["Cade Cavalli","1","5.0","4","3.60","1.00","10.80","0","0"],
+      ["Taj Bradley","1","5.0","12","7.20","1.80","12.60","0","0"],
+      ["Quinn Priester","3","18.0","22","3.00","1.00","10.50","1","0"]
+    ]
+  },
+  "2026": {
+    "batters": [
+      ["Heliot Ramos","6","6/23","2","0","0","0",".292",".304"],
+      ["William Contreras","61","70/245","37","6","42","1",".344",".404"],
+      ["Spencer Torkelson","34","22/117","11","5","13","0",".291",".368"],
+      ["Ceddanne Rafaela","46","44/159","18","3","16","5",".343",".377"],
+      ["Royce Lewis","15","10/48","7","3","10","2",".333",".438"],
+      ["James Wood","68","70/258","60","17","41","12",".407",".527"],
+      ["Riley Greene","66","74/239","34","7","31","1",".399",".464"],
+      ["Alec Burleson","63","72/246","33","9","46","2",".360",".472"],
+      ["Kerry Carpenter","29","18/88","9","6","16","0",".287",".477"],
+      ["Jacob Wilson","6","3/25","1","0","0","0",".120",".160"],
+      ["Jeremy Peña","29","33/117","23","3","11","5",".349",".410"],
+      ["Ernie Clement","27","31/108","8","1","7","0",".319",".389"],
+      ["Garrett Mitchell","4","2/8","0","0","2","0",".500",".250"],
+      ["Mickey Moniak","30","32/112","15","7","19","1",".355",".580"],
+      ["Marcus Semien","13","11/47","4","0","4","3",".265",".277"],
+      ["José Caballero","36","33/116","17","4","10","8",".346",".440"],
+      ["TJ Rumfield","3","2/11","0","0","1","0",".357",".182"],
+      ["Travis Bazzana","36","35/136","12","4","17","9",".342",".426"],
+      ["Jose Fernandez","2","1/4","1","0","0","0",".250",".250"],
+      ["Bryson Stott","28","24/98","8","4","17","4",".286",".439"],
+      ["JJ Bleday","28","29/112","14","5","21","2",".339",".482"],
+      ["Nolan Arenado","20","17/67","10","2","12","1",".370",".478"],
+      ["Chase Meidroth","2","2/5","1","0","2","0",".429",".400"],
+      ["Colt Emerson","9","7/32","5","3","6","0",".265",".563"]
+    ],
+    "pitchers": [
+      ["Camilo Doval","7","5.0","8","7.20","1.40","10.80","0","1"],
+      ["Tarik Skubal","7","43.1","52","2.70","0.95","9.35","5","0"],
+      ["Garrett Crochet","5","25.0","42","5.76","1.40","10.44","3","0"],
+      ["Andrew Abbott","6","28.2","57","6.59","1.78","5.97","1","0"],
+      ["JoJo Romero","28","27.1","40","3.62","1.32","9.22","0","16"],
+      ["Framber Valdez","12","66.2","97","4.46","1.37","7.29","6","0"],
+      ["Cam Schlittler","14","82.0","85","1.87","0.87","9.77","8","0"],
+      ["Mason Miller","28","28.2","12","0.94","0.84","17.58","0","18"],
+      ["Abner Uribe","25","23.2","27","3.80","1.23","9.51","0","12"],
+      ["Robert Garcia","8","7.2","6","3.52","1.57","7.04","0","2"],
+      ["Mick Abel","1","4.0","7","9.00","2.25","6.75","0","0"],
+      ["Chris Bassitt","1","2.0","10","27.00","4.00","0.00","0","0"],
+      ["Landen Roupp","11","59.0","80","3.97","1.32","9.61","4","0"],
+      ["Tyler Wells","8","10.2","20","3.38","1.03","7.59","0","1"],
+      ["Louis Varland","23","25.1","23","1.07","1.03","11.01","0","14"],
+      ["Tyler Mahle","1","5.0","8","9.00","1.80","5.40","0","0"],
+      ["Noah Cameron","2","11.1","15","3.18","1.24","9.53","1","0"],
+      ["Jack Kochanowicz","2","10.1","17","6.97","1.84","5.23","1","0"],
+      ["Brooks Raley","13","12.0","16","1.50","1.33","11.25","0","5"],
+      ["Jameson Taillon","2","11.0","16","2.45","1.09","7.36","0","0"],
+      ["Colin Rea","1","5.1","9","1.69","1.69","8.44","0","0"],
+      ["Nick Lodolo","5","26.0","54","5.88","1.50","7.27","1","0"],
+      ["Cade Cavalli","1","5.2","4","3.18","0.88","6.35","0","0"],
+      ["Joey Cantillo","4","18.2","25","3.86","1.45","7.23","1","0"],
+      ["Merrill Kelly","3","18.0","36","6.00","1.28","6.00","2","0"],
+      ["Connelly Early","3","17.0","26","3.18","1.35","10.06","1","0"],
+      ["Jack Leiter","1","4.2","13","9.64","1.93","3.86","0","0"]
+    ]
+  }
+};
+
+// ----- helpers -----
+function parseIP(ipStr) {
+  // Baseball notation: integer.partials  .1 = 1/3, .2 = 2/3
+  const s = String(ipStr);
+  if (!s.includes(".")) return parseInt(s, 10) || 0;
+  const [whole, frac] = s.split(".");
+  const w = parseInt(whole, 10) || 0;
+  const fracMap = {"0": 0, "1": 1/3, "2": 2/3};
+  return w + (fracMap[frac] ?? 0);
+}
+function formatIP(decimal) {
+  if (!isFinite(decimal) || decimal <= 0) return "0.0";
+  // Round outs, then split
+  const totalOuts = Math.round(decimal * 3);
+  const whole = Math.floor(totalOuts / 3);
+  const fracOuts = totalOuts % 3;
+  return `${whole}.${fracOuts}`;
+}
+function num(s) { return parseFloat(s) || 0; }
+
+// ----- aggregate batters -----
+// mode = "career" (combine all seasons per player) or "season" (one row per player per season)
+function aggregateBatters(seasons, mode = "career") {
+  const map = new Map();
+  for (const season of seasons) {
+    for (const row of RAW_DATA[season].batters) {
+      const [name, gp, hab, r, hr, rbi, sb, obp, slg] = row;
+      const [hStr, abStr] = hab.split("/");
+      const h = parseInt(hStr, 10) || 0;
+      const ab = parseInt(abStr, 10) || 0;
+      const slgNum = num(slg);
+      const tb = slgNum * ab; // total bases for this season
+      const mapKey = mode === "season" ? `${name}|${season}` : name;
+      let p = map.get(mapKey);
+      if (!p) {
+        p = { name, gp:0, h:0, ab:0, r:0, hr:0, rbi:0, sb:0, tb:0, seasons:new Set() };
+        map.set(mapKey, p);
+      }
+      p.gp += parseInt(gp, 10) || 0;
+      p.h += h;
+      p.ab += ab;
+      p.r += parseInt(r, 10) || 0;
+      p.hr += parseInt(hr, 10) || 0;
+      p.rbi += parseInt(rbi, 10) || 0;
+      p.sb += parseInt(sb, 10) || 0;
+      p.tb += tb;
+      p.seasons.add(season);
+    }
+  }
+  return Array.from(map.values()).map(p => {
+    const seasonsArr = Array.from(p.seasons).sort();
+    return {
+      ...p,
+      seasons: seasonsArr,
+      positions: POSITION_DATA.batters[p.name] || [],
+      avg: p.ab > 0 ? p.h / p.ab : 0,
+      slg: p.ab > 0 ? p.tb / p.ab : 0,
+      isCurrent: CURRENT_ROSTER.has(p.name) && (mode !== "season" || seasonsArr.includes(CURRENT_SEASON))
+    };
+  });
+}
+
+// ----- aggregate pitchers -----
+// mode = "career" (combine all seasons per player) or "season" (one row per player per season)
+function aggregatePitchers(seasons, mode = "career") {
+  const map = new Map();
+  for (const season of seasons) {
+    for (const row of RAW_DATA[season].pitchers) {
+      const [name, gp, ipStr, tba, era, whip, k9, qs, svh] = row;
+      const ip = parseIP(ipStr);
+      const er = num(era) * ip / 9;
+      const wh = num(whip) * ip;
+      const k = num(k9) * ip / 9;
+      const mapKey = mode === "season" ? `${name}|${season}` : name;
+      let p = map.get(mapKey);
+      if (!p) {
+        p = { name, gp:0, ip:0, tba:0, er:0, wh:0, k:0, qs:0, svh:0, seasons:new Set() };
+        map.set(mapKey, p);
+      }
+      p.gp += parseInt(gp, 10) || 0;
+      p.ip += ip;
+      p.tba += parseInt(tba, 10) || 0;
+      p.er += er;
+      p.wh += wh;
+      p.k += k;
+      p.qs += parseInt(qs, 10) || 0;
+      p.svh += parseInt(svh, 10) || 0;
+      p.seasons.add(season);
+    }
+  }
+  return Array.from(map.values()).map(p => {
+    const seasonsArr = Array.from(p.seasons).sort();
+    return {
+      ...p,
+      seasons: seasonsArr,
+      positions: POSITION_DATA.pitchers[p.name] || [],
+      era: p.ip > 0 ? (p.er * 9) / p.ip : 0,
+      whip: p.ip > 0 ? p.wh / p.ip : 0,
+      kTotal: Math.round(p.k),
+      k9: p.ip > 0 ? (p.k * 9) / p.ip : 0,
+      isCurrent: CURRENT_ROSTER.has(p.name) && (mode !== "season" || seasonsArr.includes(CURRENT_SEASON))
+    };
+  });
+}
+
+// ----- rendering -----
+function fmtRate(x, digits = 3) {
+  if (!isFinite(x)) return "—";
+  // For SLG/AVG, drop leading zero baseball-style
+  return x.toFixed(digits).replace(/^0\./, ".");
+}
+function fmtERA(x) {
+  if (!isFinite(x)) return "—";
+  return x.toFixed(2);
+}
+function fmtWHIP(x) {
+  if (!isFinite(x)) return "—";
+  return x.toFixed(2);
+}
+function seasonsBadges(seasons) {
+  return `<span class="seasons">${seasons.map(s => `<span class="badge s${s.slice(2)}">'${s.slice(2)}</span>`).join("")}</span>`;
+}
+function positionCell(positions) {
+  if (!positions || positions.length === 0) return `<td class="pos-cell"><span class="pos-empty">—</span></td>`;
+  return `<td class="pos-cell">${positions.map(p => `<span class="pos-tag">${p}</span>`).join("")}</td>`;
+}
+function positionSortKey(positions) {
+  return positions && positions.length ? positions.join(",") : "~"; // ~ sorts after letters
+}
+
+const BATTER_COLS = [
+  { key: "name", label: "Player", type: "string", render: p => `<td class="player${p.isCurrent ? " current" : ""}">${escapeHtml(p.name)}${seasonsBadges(p.seasons)}</td>` },
+  { key: "pos",  label: "Pos",    type: "string", sortVal: p => positionSortKey(p.positions), render: p => positionCell(p.positions) },
+  { key: "gp",   label: "GP",     type: "num",    render: p => `<td>${p.gp}</td>` },
+  { key: "h",    label: "H",      type: "num",    render: p => `<td>${p.h}</td>` },
+  { key: "ab",   label: "AB",     type: "num",    render: p => `<td>${p.ab}</td>` },
+  { key: "avg",  label: "AVG",    type: "num",    render: p => `<td>${fmtRate(p.avg)}</td>` },
+  { key: "r",    label: "R",      type: "num",    render: p => `<td>${p.r}</td>` },
+  { key: "hr",   label: "HR",     type: "num",    render: p => `<td>${p.hr}</td>` },
+  { key: "rbi",  label: "RBI",    type: "num",    render: p => `<td>${p.rbi}</td>` },
+  { key: "sb",   label: "SB",     type: "num",    render: p => `<td>${p.sb}</td>` },
+  { key: "slg",  label: "SLG",    type: "num",    render: p => `<td>${fmtRate(p.slg)}</td>` }
+];
+
+const PITCHER_COLS = [
+  { key: "name", label: "Player", type: "string", render: p => `<td class="player${p.isCurrent ? " current" : ""}">${escapeHtml(p.name)}${seasonsBadges(p.seasons)}</td>` },
+  { key: "pos",  label: "Pos",    type: "string", sortVal: p => positionSortKey(p.positions), render: p => positionCell(p.positions) },
+  { key: "gp",   label: "GP",     type: "num",    render: p => `<td>${p.gp}</td>` },
+  { key: "ip",   label: "IP",     type: "num",    render: p => `<td>${formatIP(p.ip)}</td>` },
+  { key: "tba",  label: "TBA",    type: "num",    render: p => `<td>${p.tba}</td>` },
+  { key: "era",  label: "ERA",    type: "num",    render: p => `<td>${fmtERA(p.era)}</td>` },
+  { key: "whip", label: "WHIP",   type: "num",    render: p => `<td>${fmtWHIP(p.whip)}</td>` },
+  { key: "kTotal", label: "K",    type: "num",    render: p => `<td>${p.kTotal}</td>` },
+  { key: "k9",   label: "K/9",    type: "num",    render: p => `<td>${isFinite(p.k9) ? p.k9.toFixed(2) : "—"}</td>` },
+  { key: "qs",   label: "QS",     type: "num",    render: p => `<td>${p.qs}</td>` },
+  { key: "svh",  label: "SV+H",   type: "num",    render: p => `<td>${p.svh}</td>` }
+];
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+// Secondary-sort tiebreakers: when the primary sort is tied, fall through to a column-specific
+// rule. `betterIs: "smaller"` means the smaller value should appear higher in the list when the
+// primary sort is descending (and lower when ascending). `"larger"` is the opposite.
+const TIEBREAKERS = {
+  // Batter counting stats — fewer GP wins on a tie
+  h:   { key: "gp", betterIs: "smaller" },
+  ab:  { key: "gp", betterIs: "smaller" },
+  r:   { key: "gp", betterIs: "smaller" },
+  hr:  { key: "gp", betterIs: "smaller" },
+  rbi: { key: "gp", betterIs: "smaller" },
+  sb:  { key: "gp", betterIs: "smaller" },
+  // Pitcher counting stats — fewer GP wins on a tie
+  qs:  { key: "gp", betterIs: "smaller" },
+  svh: { key: "gp", betterIs: "smaller" },
+  // Pitcher K — higher K/9 wins on a tie
+  kTotal: { key: "k9", betterIs: "larger" }
+};
+
+function buildTable(tableEl, columns, data, defaultSort) {
+  const state = { sortKey: defaultSort.key, sortDir: defaultSort.dir, filter: "", positions: new Set(), showActiveOnly: false };
+  let currentData = data;
+
+  function render() {
+    let filtered = currentData.slice();
+    if (state.filter) {
+      const f = state.filter.toLowerCase();
+      filtered = filtered.filter(p => p.name.toLowerCase().includes(f));
+    }
+    if (state.positions.size > 0) {
+      filtered = filtered.filter(p => p.positions && p.positions.some(pos => state.positions.has(pos)));
+    }
+    if (state.showActiveOnly) {
+      filtered = filtered.filter(p => p.isCurrent);
+    }
+    const col = columns.find(c => c.key === state.sortKey);
+    const valOf = (p) => col.sortVal ? col.sortVal(p) : p[state.sortKey];
+    const tb = TIEBREAKERS[state.sortKey];
+    filtered.sort((a, b) => {
+      const av = valOf(a), bv = valOf(b);
+      let primaryCmp;
+      if (col.type === "string") primaryCmp = String(av).localeCompare(String(bv));
+      else primaryCmp = (av || 0) - (bv || 0);
+      if (state.sortDir === "desc") primaryCmp = -primaryCmp;
+      if (primaryCmp !== 0) return primaryCmp;
+      if (!tb) return 0;
+      const av2 = Number(a[tb.key]) || 0;
+      const bv2 = Number(b[tb.key]) || 0;
+      // Compute a "smaller-first" comparison, then orient based on tiebreaker preference + sortDir.
+      let secondaryCmp = av2 - bv2; // ascending (smaller first)
+      // betterIs="smaller" + primary DESC → keep ascending (smaller wins)
+      // betterIs="smaller" + primary ASC  → flip (larger wins)
+      // betterIs="larger"  + primary DESC → flip (larger wins)
+      // betterIs="larger"  + primary ASC  → keep ascending (smaller wins)
+      const flipBetter = tb.betterIs === "larger";
+      const flipDir = state.sortDir === "asc";
+      if (flipBetter !== flipDir) secondaryCmp = -secondaryCmp;
+      return secondaryCmp;
+    });
+
+    // Compute Olympic-style ranks based on the current sort column.
+    // Tied rows share a rank; later ranks skip ahead. Display blank on duplicates.
+    const ranks = [];
+    let prevVal = undefined;
+    let prevRank = 0;
+    filtered.forEach((p, i) => {
+      const v = valOf(p);
+      const isTie = i > 0 && (
+        col.type === "string"
+          ? String(v) === String(prevVal)
+          : (Number(v) || 0) === (Number(prevVal) || 0)
+      );
+      if (isTie) {
+        ranks[i] = prevRank;
+      } else {
+        ranks[i] = i + 1;
+        prevRank = i + 1;
+        prevVal = v;
+      }
+    });
+
+    const thead = `<thead><tr><th class="rank"></th>${columns.map(c => {
+      const cls = c.key === state.sortKey ? `sorted-${state.sortDir}` : "";
+      return `<th class="${cls}" data-key="${c.key}">${c.label}</th>`;
+    }).join("")}</tr></thead>`;
+
+    const tbody = filtered.length
+      ? `<tbody>${filtered.map((p, i) => {
+          const showRank = i === 0 || ranks[i] !== ranks[i-1];
+          const rankCell = `<td class="rank">${showRank ? ranks[i] : ""}</td>`;
+          return `<tr>${rankCell}${columns.map(c => c.render(p)).join("")}</tr>`;
+        }).join("")}</tbody>`
+      : `<tbody><tr><td colspan="${columns.length + 1}" class="empty">No players match your search.</td></tr></tbody>`;
+
+    tableEl.innerHTML = thead + tbody;
+
+    tableEl.querySelectorAll("th[data-key]").forEach(th => {
+      th.addEventListener("click", () => {
+        const key = th.dataset.key;
+        if (state.sortKey === key) {
+          state.sortDir = state.sortDir === "desc" ? "asc" : "desc";
+        } else {
+          state.sortKey = key;
+          const c = columns.find(c => c.key === key);
+          state.sortDir = c.type === "string" ? "asc" : "desc";
+        }
+        render();
+      });
+    });
+  }
+
+  render();
+  return {
+    setFilter: f => { state.filter = f; render(); },
+    setData: d => { currentData = d; render(); },
+    togglePosition: pos => {
+      if (state.positions.has(pos)) state.positions.delete(pos);
+      else state.positions.add(pos);
+      render();
+      return state.positions.has(pos);
+    },
+    clearPositions: () => { state.positions.clear(); render(); },
+    setShowActive: v => { state.showActiveOnly = !!v; render(); }
+  };
+}
+
+// ----- init -----
+const ALL_SEASONS = ["2024","2025","2026"];
+const activeSeasons = new Set(ALL_SEASONS);
+let viewMode = "career"; // "career" | "season"
+
+function activeSeasonList() {
+  return ALL_SEASONS.filter(s => activeSeasons.has(s));
+}
+
+const battersTable = buildTable(
+  document.getElementById("batters-table"),
+  BATTER_COLS,
+  aggregateBatters(activeSeasonList(), viewMode),
+  { key: "gp", dir: "desc" }
+);
+const pitchersTable = buildTable(
+  document.getElementById("pitchers-table"),
+  PITCHER_COLS,
+  aggregatePitchers(activeSeasonList(), viewMode),
+  { key: "ip", dir: "desc" }
+);
+
+function recompute() {
+  const seasons = activeSeasonList();
+  battersTable.setData(aggregateBatters(seasons, viewMode));
+  pitchersTable.setData(aggregatePitchers(seasons, viewMode));
+}
+
+document.getElementById("search").addEventListener("input", e => {
+  battersTable.setFilter(e.target.value);
+  pitchersTable.setFilter(e.target.value);
+});
+
+document.querySelectorAll("#season-legend .badge").forEach(badge => {
+  badge.addEventListener("click", () => {
+    const s = badge.dataset.season;
+    if (activeSeasons.has(s)) {
+      // Don't allow deselecting the last active season
+      if (activeSeasons.size === 1) return;
+      activeSeasons.delete(s);
+      badge.classList.add("inactive");
+    } else {
+      activeSeasons.add(s);
+      badge.classList.remove("inactive");
+    }
+    recompute();
+  });
+});
+
+function wirePositionFilter(filterId, table) {
+  const root = document.getElementById(filterId);
+  root.querySelectorAll(".chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      if (chip.dataset.clear) {
+        table.clearPositions();
+        root.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+        return;
+      }
+      const isActive = table.togglePosition(chip.dataset.pos);
+      chip.classList.toggle("active", isActive);
+    });
+  });
+}
+wirePositionFilter("batter-pos-filter", battersTable);
+wirePositionFilter("pitcher-pos-filter", pitchersTable);
+
+const showActiveCheckbox = document.getElementById("show-active");
+const showActiveLabel = document.getElementById("show-active-label");
+showActiveCheckbox.addEventListener("change", e => {
+  const on = e.target.checked;
+  battersTable.setShowActive(on);
+  pitchersTable.setShowActive(on);
+  showActiveLabel.classList.toggle("checked", on);
+});
+
+document.querySelectorAll("#mode-toggle button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const mode = btn.dataset.mode;
+    if (mode === viewMode) return;
+    viewMode = mode;
+    document.querySelectorAll("#mode-toggle button").forEach(b => {
+      b.classList.toggle("active", b.dataset.mode === mode);
+    });
+    recompute();
+  });
+});
+</script>
+</body>
+</html>
